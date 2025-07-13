@@ -1,4 +1,3 @@
-// app.js (ES module)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {
   getAuth,
@@ -14,6 +13,7 @@ import {
   setDoc,
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC_cqrtbrgJFcZaOWB_HQOwUzh7RZ4XDj0",
   authDomain: "fortnitestreams-1b4c1.firebaseapp.com",
@@ -28,114 +28,146 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// DOM Elements
 const loginBtn = document.getElementById("login-btn");
 const referralSection = document.getElementById("referral-section");
 const referralLinkInput = document.getElementById("referral-link");
 const minViewersInput = document.getElementById("min-viewers");
+const minViewersValueSpan = document.getElementById("min-viewers-value");
 const creatorNameInput = document.getElementById("creator-name");
-const streamsContainer = document.getElementById("streams");
-const filteredStreamsContainer = document.getElementById("filtered-streams");
-const watchSelectedBtn = document.getElementById("watch-selected-btn");
+const applyFiltersBtn = document.getElementById("apply-filters-btn");
 
+const streamsContainer = document.getElementById("streams");
+const multiViewerSection = document.getElementById("multi-viewer-section");
+const multiViewerContainer = document.getElementById("multi-viewer");
+const clearMultiViewerBtn = document.getElementById("clear-multi-viewer");
+
+let allStreams = []; // Full current streams after filtering
+let selectedStreams = new Map(); // key: stream embedUrl, value: stream object
+
+// Update min viewers label on input change
+minViewersInput.addEventListener("input", () => {
+  minViewersValueSpan.textContent = minViewersInput.value;
+});
+
+// Create stream preview element with click to select/deselect
 function createStreamPreview(stream) {
   const container = document.createElement("div");
   container.classList.add("stream-preview");
+  container.title = `${stream.display_name}\n${stream.title}\nViewers: ${stream.viewer_count}`;
+  container.style.position = "relative";
 
+  // Thumbnail image
   const img = document.createElement("img");
-  img.src = stream.thumbnailUrl ||
-    `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel}-320x180.jpg`;
-  img.alt = stream.title || "Stream preview";
-  img.className = "stream-thumbnail";
-
-  const meta = document.createElement("div");
-  meta.className = "stream-meta";
-  meta.innerHTML = `
-    <strong>${stream.user_name || stream.channel || "Unnamed Creator"}</strong>
-    <span>${stream.viewer_count || 0} viewers</span>
-  `;
-
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.className = "stream-select";
-  checkbox.dataset.embedUrl = stream.embedUrl;
-
+  img.src = stream.thumbnailUrl || "";
+  img.alt = `${stream.display_name} thumbnail`;
   container.appendChild(img);
-  container.appendChild(meta);
-  container.appendChild(checkbox);
 
+  // Info bar below thumbnail
+  const info = document.createElement("div");
+  info.classList.add("stream-info");
+  info.innerHTML = `
+    <span class="streamer-name">${stream.display_name}</span>
+    <span class="viewer-count">👁️ ${stream.viewer_count}</span>
+  `;
+  container.appendChild(info);
+
+  // Click toggles selection for multi-viewer
   container.addEventListener("click", () => {
+    toggleStreamSelection(stream);
+  });
+
+  // Highlight if selected
+  if (selectedStreams.has(stream.embedUrl)) {
+    container.classList.add("selected");
+  }
+
+  return container;
+}
+
+// Render all streams grid
+function renderAllStreams() {
+  streamsContainer.innerHTML = "";
+  allStreams.forEach((stream) => {
+    streamsContainer.appendChild(createStreamPreview(stream));
+  });
+}
+
+// Render multi-viewer grid with up to 16 streams
+function renderMultiViewer() {
+  multiViewerContainer.innerHTML = "";
+
+  if (selectedStreams.size === 0) {
+    multiViewerSection.style.display = "none";
+    return;
+  }
+
+  multiViewerSection.style.display = "block";
+
+  // Adjust grid columns based on count
+  multiViewerContainer.setAttribute("data-count", selectedStreams.size);
+
+  for (const stream of selectedStreams.values()) {
     const iframe = document.createElement("iframe");
-    let embed = stream.embedUrl;
-    if (embed.includes("player.twitch.tv")) {
-      const parent = window.location.hostname;
-      embed = embed.replace(/([&?])parent=[^&]+/, "");
-      embed += embed.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
-    }
-    iframe.src = embed;
+    iframe.src = stream.embedUrl;
     iframe.allowFullscreen = true;
     iframe.setAttribute("frameborder", "0");
     iframe.setAttribute("scrolling", "no");
     iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
     iframe.width = "640";
     iframe.height = "360";
-    container.innerHTML = "";
-    container.appendChild(iframe);
-  });
-
-  return container;
-}
-
-function renderStreams(container, streams) {
-  container.innerHTML = "";
-  streams.forEach((stream) => {
-    container.appendChild(createStreamPreview(stream));
-  });
-}
-
-async function loadCachedStreams() {
-  try {
-    const res = await fetch("https://fortnitestreams.onrender.com/cache");
-    const streams = await res.json();
-    renderStreams(streamsContainer, streams);
-  } catch (e) {
-    console.error("Failed to load cached streams", e);
+    multiViewerContainer.appendChild(iframe);
   }
 }
 
-async function loadFilteredStreams(minViewers, creator) {
+// Toggle stream selection in multi-viewer (max 16)
+function toggleStreamSelection(stream) {
+  if (selectedStreams.has(stream.embedUrl)) {
+    selectedStreams.delete(stream.embedUrl);
+  } else {
+    if (selectedStreams.size >= 16) {
+      alert("You can select up to 16 streams for multi-viewer.");
+      return;
+    }
+    selectedStreams.set(stream.embedUrl, stream);
+  }
+  renderAllStreams();
+  renderMultiViewer();
+}
+
+// Clear all selections
+clearMultiViewerBtn.addEventListener("click", () => {
+  selectedStreams.clear();
+  renderAllStreams();
+  renderMultiViewer();
+});
+
+// Fetch and filter streams
+async function loadStreams() {
   try {
-    const res = await fetch(`https://fortnitestreams.onrender.com/filtered?minViewers=${minViewers}`);
+    // Fetch cached streams from backend with minViewers filter
+    const minViewers = parseInt(minViewersInput.value) || 0;
+    const creatorFilter = creatorNameInput.value.trim().toLowerCase();
+
+    const res = await fetch(`https://fortnitestreams.onrender.com/cache`);
     let streams = await res.json();
-    if (creator) {
-      const nameLower = creator.toLowerCase();
-      streams = streams.filter((s) =>
-        (s.user_name || s.channel || "").toLowerCase().includes(nameLower)
-      );
-    }
-    renderStreams(filteredStreamsContainer, streams);
-  } catch (e) {
-    console.error("Failed to load filtered streams", e);
-  }
-}
 
-async function loadYouTubeStreams(idToken) {
-  try {
-    const res = await fetch("https://fortnitestreams.onrender.com/youtube", {
-      headers: { Authorization: `Bearer ${idToken}` },
+    // Filter streams by minViewers and creator name (case insensitive)
+    streams = streams.filter((s) => {
+      const viewerOk = s.viewer_count >= minViewers;
+      const creatorOk = creatorFilter === "" || (s.display_name && s.display_name.toLowerCase().includes(creatorFilter));
+      return viewerOk && creatorOk;
     });
-    if (res.ok) {
-      const ytStreams = await res.json();
-      ytStreams.forEach((stream) => {
-        filteredStreamsContainer.appendChild(createStreamPreview(stream));
-      });
-    } else {
-      console.log("YouTube streams unavailable:", await res.json());
-    }
+
+    allStreams = streams;
+    renderAllStreams();
+
   } catch (e) {
-    console.error("Failed to load YouTube streams", e);
+    console.error("Failed to load streams", e);
   }
 }
 
+// Referral code submission (kept unchanged)
 async function submitReferralCode(idToken, code) {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/register-referral", {
@@ -158,10 +190,12 @@ async function submitReferralCode(idToken, code) {
   }
 }
 
+// Generate random referral code (kept unchanged)
 function generateReferralCode() {
   return Math.random().toString(36).substring(2, 8);
 }
 
+// Sign in flow (kept unchanged)
 loginBtn.addEventListener("click", async () => {
   const provider = new GoogleAuthProvider();
   try {
@@ -171,6 +205,7 @@ loginBtn.addEventListener("click", async () => {
   }
 });
 
+// Handle user auth state
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     loginBtn.style.display = "none";
@@ -195,46 +230,30 @@ onAuthStateChanged(auth, async (user) => {
       referralLinkInput.value = `${window.location.origin}?ref=${userDoc.data().referralCode}`;
     }
 
+    // Check referral query param once
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (ref && (!userDoc.exists() || !userDoc.data().referredBy)) {
       await submitReferralCode(idToken, ref);
     }
 
-    await loadCachedStreams();
-    const minViewers = parseInt(minViewersInput.value) || 0;
-    const creator = creatorNameInput.value.trim();
-    await loadFilteredStreams(minViewers, creator);
-    await loadYouTubeStreams(idToken);
+    await loadStreams();
+
   } else {
     loginBtn.style.display = "block";
     referralSection.style.display = "none";
     streamsContainer.innerHTML = "";
-    filteredStreamsContainer.innerHTML = "";
+    multiViewerContainer.innerHTML = "";
+    multiViewerSection.style.display = "none";
+    allStreams = [];
+    selectedStreams.clear();
   }
 });
 
-window.applyFilters = async () => {
-  const minViewers = parseInt(minViewersInput.value) || 0;
-  const creator = creatorNameInput.value.trim();
-  await loadFilteredStreams(minViewers, creator);
-
-  const user = auth.currentUser;
-  if (user) {
-    const idToken = await user.getIdToken();
-    await loadYouTubeStreams(idToken);
-  }
-};
-
-watchSelectedBtn.addEventListener("click", () => {
-  const selected = document.querySelectorAll(".stream-select:checked");
-  const urls = Array.from(selected).map((el) => el.dataset.embedUrl);
-  if (urls.length > 0) {
-    const query = urls.map((u) => `stream=${encodeURIComponent(u)}`).join("&");
-    window.location.href = `/multiviewer.html?${query}`;
-  } else {
-    alert("Please select at least one stream to watch.");
-  }
+// Apply filters button
+applyFiltersBtn.addEventListener("click", () => {
+  loadStreams();
 });
 
-loadCachedStreams();
+// Initial load of streams (without auth, shows cached)
+loadStreams();
