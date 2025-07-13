@@ -5,26 +5,30 @@ const multiStreamsContainer = document.getElementById("multi-streams");
 const firefoxModeContainer = document.getElementById("firefox-mode-container");
 const firefoxModeCheckbox = document.getElementById("firefox-mode-checkbox");
 
-// Detect Firefox browser
-const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
+// Detect Firefox reliably
+const isFirefox = typeof InstallTrigger !== 'undefined';
 if (isFirefox) {
   firefoxModeContainer.style.display = "block";
 } else {
   firefoxModeContainer.style.display = "none";
 }
 
-// Fetch all cached streams and populate select
+// Fetch cached streams and populate select options
 async function loadStreamsForSelect() {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/cache");
     if (!res.ok) throw new Error("Failed to fetch streams");
     const streams = await res.json();
 
+    // Clear existing options
+    streamSelect.innerHTML = "";
+
     streams.forEach((stream) => {
       const name = stream.user_name || stream.user_login || stream.channel || "Unknown Creator";
+      const viewers = stream.viewer_count || 0;
       const option = document.createElement("option");
       option.value = stream.user_login || stream.channel || "";
-      option.textContent = `${name} (${stream.viewer_count || 0} viewers)`;
+      option.textContent = `${name} (${viewers} viewers)`;
       streamSelect.appendChild(option);
     });
   } catch (e) {
@@ -35,9 +39,7 @@ async function loadStreamsForSelect() {
 function createMultiStreamIframe(channel, firefoxMode) {
   const iframe = document.createElement("iframe");
   let src = `https://player.twitch.tv/?channel=${channel}&parent=${window.location.hostname}`;
-  if (firefoxMode) {
-    // No autoplay param to avoid Firefox blocking
-  } else {
+  if (!firefoxMode) {
     src += "&autoplay=true";
   }
   iframe.src = src;
@@ -73,5 +75,5 @@ loadBtn.addEventListener("click", () => {
   });
 });
 
-// Load streams on page load
+// Initialize on page load
 loadStreamsForSelect();
