@@ -35,9 +35,15 @@ const loginBtn = document.getElementById("login-btn");
 const referralSection = document.getElementById("referral-section");
 const referralLinkInput = document.getElementById("referral-link");
 const minViewersInput = document.getElementById("min-viewers");
+const minViewersValue = document.getElementById("min-viewers-value");
 const creatorNameInput = document.getElementById("creator-name");
 const streamsContainer = document.getElementById("streams");
 const filteredStreamsContainer = document.getElementById("filtered-streams");
+
+// Update min viewers value label dynamically
+minViewersInput.addEventListener("input", () => {
+  minViewersValue.textContent = minViewersInput.value;
+});
 
 // Helpers
 
@@ -46,30 +52,42 @@ function createStreamPreview(stream) {
   const container = document.createElement("div");
   container.classList.add("stream-preview");
   container.style.position = "relative";
-  container.style.width = "320px";  // thumbnail size for grid
-  container.style.height = "180px"; // 16:9 ratio
+  container.style.width = "320px";
+  container.style.height = "180px";
   container.style.margin = "8px";
   container.style.borderRadius = "8px";
   container.style.overflow = "hidden";
   container.style.backgroundColor = "#000";
 
-  // Determine thumbnail URL
-  // For Twitch streams, expect stream.thumbnailUrl or build fallback
-  // For YouTube streams, use stream.thumbnailUrl or thumbnails from API
+  // Get real creator name from multiple possible keys
+  const creatorName =
+    stream.user_name ||
+    stream.display_name ||
+    stream.channel ||
+    stream.user_login ||
+    "Unknown Creator";
+
+  // Determine thumbnail URL with fallback
   let thumbnailUrl = "";
+
   if (stream.thumbnailUrl) {
-    thumbnailUrl = stream.thumbnailUrl.replace("{width}", "320").replace("{height}", "180");
+    // Replace {width} and {height} placeholders if exist
+    thumbnailUrl = stream.thumbnailUrl
+      .replace("{width}", "320")
+      .replace("{height}", "180");
+  } else if (stream.thumbnail) {
+    // YouTube streams might have 'thumbnail'
+    thumbnailUrl = stream.thumbnail;
   } else if (stream.user_login) {
+    // Twitch fallback URL pattern
     thumbnailUrl = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login}-320x180.jpg`;
   } else if (stream.channel) {
     thumbnailUrl = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.channel}-320x180.jpg`;
-  } else if (stream.platform === "youtube" && stream.thumbnail) {
-    thumbnailUrl = stream.thumbnail;
   } else {
     thumbnailUrl = "https://via.placeholder.com/320x180?text=No+Preview";
   }
 
-  // Thumbnail image
+  // Thumbnail image element
   const img = document.createElement("img");
   img.src = thumbnailUrl;
   img.alt = stream.title || "Stream preview";
@@ -80,12 +98,12 @@ function createStreamPreview(stream) {
 
   // Creator name overlay
   const nameOverlay = document.createElement("div");
-  nameOverlay.textContent = stream.user_name || stream.display_name || stream.channel || "Unknown Creator";
+  nameOverlay.textContent = creatorName;
   nameOverlay.style.position = "absolute";
   nameOverlay.style.bottom = "0";
   nameOverlay.style.left = "0";
   nameOverlay.style.right = "0";
-  nameOverlay.style.background = "rgba(0,0,0,0.6)";
+  nameOverlay.style.background = "rgba(0, 0, 0, 0.6)";
   nameOverlay.style.color = "white";
   nameOverlay.style.fontWeight = "bold";
   nameOverlay.style.padding = "4px 8px";
@@ -95,18 +113,16 @@ function createStreamPreview(stream) {
   container.appendChild(img);
   container.appendChild(nameOverlay);
 
-  // On click, replace thumbnail with Twitch or YouTube iframe
+  // Click handler loads actual player iframe
   container.addEventListener("click", () => {
     const iframe = document.createElement("iframe");
 
     if (stream.embedUrl.includes("player.twitch.tv")) {
-      // Add parent param dynamically for Twitch embed
       const parent = window.location.hostname;
       let cleanUrl = stream.embedUrl.replace(/([&?])parent=[^&]+/, "");
       cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
       iframe.src = cleanUrl;
     } else {
-      // Assume YouTube or other
       iframe.src = stream.embedUrl;
     }
 
@@ -131,7 +147,7 @@ function renderStreams(container, streams) {
   });
 }
 
-// Fetch cached Twitch streams from backend
+// Fetch all cached Twitch streams from backend
 async function loadCachedStreams() {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/cache");
@@ -142,12 +158,11 @@ async function loadCachedStreams() {
   }
 }
 
-// Fetch filtered Twitch streams (with minViewers and creator name)
-async function loadFilteredStreams(minViewers, creatorName = "") {
+// Fetch filtered Twitch streams (with minViewers and creatorName filters)
+async function loadFilteredStreams(minViewers, creatorName) {
   try {
-    // Append creatorName param if provided (url encoded)
     let url = `https://fortnitestreams.onrender.com/filtered?minViewers=${minViewers}`;
-    if (creatorName.trim() !== "") {
+    if (creatorName && creatorName.trim() !== "") {
       url += `&creatorName=${encodeURIComponent(creatorName.trim())}`;
     }
     const res = await fetch(url);
@@ -247,11 +262,13 @@ onAuthStateChanged(auth, async (user) => {
       await submitReferralCode(idToken, ref);
     }
 
-    // Load streams
+    // Load all streams on login
     await loadCachedStreams();
+
     const minViewers = parseInt(minViewersInput.value) || 0;
-    const creatorName = creatorNameInput.value || "";
+    const creatorName = creatorNameInput.value;
     await loadFilteredStreams(minViewers, creatorName);
+
     await loadYouTubeStreams(idToken);
   } else {
     loginBtn.style.display = "block";
@@ -264,7 +281,7 @@ onAuthStateChanged(auth, async (user) => {
 // Filter button handler
 window.applyFilters = async () => {
   const minViewers = parseInt(minViewersInput.value) || 0;
-  const creatorName = creatorNameInput.value || "";
+  const creatorName = creatorNameInput.value;
   await loadFilteredStreams(minViewers, creatorName);
 
   const user = auth.currentUser;
@@ -276,8 +293,3 @@ window.applyFilters = async () => {
 
 // Load cached streams on initial page load
 loadCachedStreams();
-
-// Update min-viewers slider value display
-minViewersInput.addEventListener("input", () => {
-  document.getElementById("min-viewers-value").textContent = minViewersInput.value;
-});
