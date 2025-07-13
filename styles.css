@@ -169,3 +169,13 @@ main {
   margin-top: 20px;
   user-select: none;
 }
+
+.fav-btn {
+  margin-top: 4px;
+  background-color: transparent;
+  color: gold;
+  border: 1px solid #aaa;
+  cursor: pointer;
+  font-size: 14px;
+}
+
