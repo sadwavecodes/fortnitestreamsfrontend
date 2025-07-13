@@ -337,3 +337,51 @@ main {
     flex-direction: column;
   }
 }
+
+
+/* Multi-Viewer 16:9 container for viewer.html */
+
+.multi-viewer-16by9 {
+  width: 95vw;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9;
+  margin: 1rem auto;
+  background-color: #000;
+  border-radius: 12px;
+  padding: 10px;
+  box-sizing: border-box;
+  box-shadow: 0 0 20px rgba(0,0,0,0.9);
+  display: grid;
+  gap: 8px;
+}
+
+/* For multi-select page */
+.watch-btn {
+  margin-top: 12px;
+  padding: 10px 20px;
+  font-weight: 600;
+  background-color: #61dafb;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.watch-btn:hover {
+  background-color: #21a1f1;
+}
+
+/* Stream select */
+.stream-select {
+  width: 100%;
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 8px;
+  font-size: 1rem;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
