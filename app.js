@@ -39,33 +39,76 @@ const streamsContainer = document.getElementById("streams");
 const filteredStreamsContainer = document.getElementById("filtered-streams");
 
 // Helpers
-function createStreamEmbed(url) {
-  const iframe = document.createElement("iframe");
 
-  // Dynamically add correct parent param to Twitch embeds
-  if (url.includes("player.twitch.tv")) {
-    const parent = window.location.hostname;
-    // Remove any existing parent param
-    let cleanUrl = url.replace(/([&?])parent=[^&]+/, "");
-    cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
-    iframe.src = cleanUrl;
-  } else {
-    iframe.src = url;
-  }
+// Create clickable preview thumbnail, load iframe only on click
+function createStreamPreview(stream) {
+  const container = document.createElement("div");
+  container.classList.add("stream-preview");
+  container.style.position = "relative";
+  container.style.width = "320px";  // thumbnail size for grid
+  container.style.height = "180px"; // 16:9 ratio
+  container.style.margin = "8px";
 
-  iframe.allowFullscreen = true;
-  iframe.setAttribute("frameborder", "0");
-  iframe.setAttribute("scrolling", "no");
-  iframe.width = "640";
-  iframe.height = "360";
+  // Thumbnail image (use backend thumbnailUrl or fallback Twitch preview)
+  const img = document.createElement("img");
+  img.src = stream.thumbnailUrl || `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel || ""}-320x180.jpg`;
+  img.alt = stream.title || "Stream preview";
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.objectFit = "cover";
+  img.style.cursor = "pointer";
+  img.style.borderRadius = "8px";
 
-  return iframe;
+  // Play button overlay
+  const playButton = document.createElement("div");
+  playButton.textContent = "▶";
+  playButton.style.position = "absolute";
+  playButton.style.top = "50%";
+  playButton.style.left = "50%";
+  playButton.style.transform = "translate(-50%, -50%)";
+  playButton.style.fontSize = "48px";
+  playButton.style.color = "white";
+  playButton.style.textShadow = "0 0 5px black";
+  playButton.style.pointerEvents = "none";
+
+  container.appendChild(img);
+  container.appendChild(playButton);
+
+  // On click, replace thumbnail with Twitch iframe
+  container.addEventListener("click", () => {
+    const iframe = document.createElement("iframe");
+
+    // If Twitch player URL, add correct 'parent' param dynamically
+    if (stream.embedUrl.includes("player.twitch.tv")) {
+      const parent = window.location.hostname;
+      // Remove any existing parent param first
+      let cleanUrl = stream.embedUrl.replace(/([&?])parent=[^&]+/, "");
+      // Add parent param properly
+      cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
+      iframe.src = cleanUrl;
+    } else {
+      iframe.src = stream.embedUrl;
+    }
+
+    iframe.allowFullscreen = true;
+    iframe.setAttribute("frameborder", "0");
+    iframe.setAttribute("scrolling", "no");
+    iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
+    iframe.width = "640";
+    iframe.height = "360";
+
+    // Replace preview with actual stream iframe
+    container.innerHTML = "";
+    container.appendChild(iframe);
+  });
+
+  return container;
 }
 
 function renderStreams(container, streams) {
   container.innerHTML = "";
   streams.forEach((stream) => {
-    container.appendChild(createStreamEmbed(stream.embedUrl));
+    container.appendChild(createStreamPreview(stream));
   });
 }
 
@@ -100,7 +143,7 @@ async function loadYouTubeStreams(idToken) {
     if (res.ok) {
       const ytStreams = await res.json();
       ytStreams.forEach((stream) => {
-        filteredStreamsContainer.appendChild(createStreamEmbed(stream.embedUrl));
+        filteredStreamsContainer.appendChild(createStreamPreview(stream));
       });
     } else {
       console.log("YouTube streams unavailable:", await res.json());
