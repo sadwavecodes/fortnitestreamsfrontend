@@ -23,7 +23,7 @@ h1 {
   user-select: none;
 }
 
-#login-btn {
+#login-btn, #logout-btn {
   background-color: #00aaff;
   border: none;
   padding: 10px 20px;
@@ -37,7 +37,8 @@ h1 {
   margin-right: 12px;
 }
 
-#login-btn:hover {
+#login-btn:hover,
+#logout-btn:hover {
   background-color: #0088cc;
 }
 
@@ -48,20 +49,6 @@ h1 {
   font-size: 1rem;
   margin-left: auto;
   user-select: none;
-}
-
-#referral-section {
-  margin-top: 12px;
-  width: 100%;
-}
-
-#referral-section input {
-  width: 100%;
-  padding: 8px;
-  border-radius: 8px;
-  border: none;
-  font-size: 1rem;
-  user-select: all;
 }
 
 main {
@@ -127,25 +114,28 @@ main {
 }
 
 .stream-preview {
-  cursor: pointer;
+  position: relative;
   border-radius: 10px;
   overflow: hidden;
   background: #000;
   box-shadow: 0 0 6px rgba(0, 170, 255, 0.3);
-  transition: transform 0.2s ease;
-  position: relative;
   aspect-ratio: 16 / 9;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
 .stream-preview:hover {
   transform: scale(1.02);
 }
 
-.stream-preview img {
-  display: block;
+.stream-preview img,
+.stream-preview iframe {
   width: 100%;
   height: 100%;
+  display: block;
   object-fit: cover;
+  border: none;
+  border-radius: 0;
 }
 
 .stream-name-overlay {
@@ -182,22 +172,26 @@ main {
   display: block;
 }
 
-#logout-btn {
-  background-color: #00aaff;
-  border: none;
-  padding: 10px 20px;
-  color: white;
+/* Remove old referral input section if unused */
+#referral-section {
+  display: none;
+}
+
+#user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#user-name {
   font-weight: 600;
-  font-size: 1rem;
-  border-radius: 24px;
+  text-decoration: underline;
   cursor: pointer;
-  user-select: none;
-  transition: background-color 0.3s ease;
-  margin-right: 12px;
 }
 
-#logout-btn:hover {
-  background-color: #0088cc;
+/* Responsive fallback */
+@media (max-width: 480px) {
+  .stream-grid {
+    grid-template-columns: 1fr;
+  }
 }
-
-
