@@ -171,11 +171,13 @@ main {
 }
 
 .fav-btn {
-  margin-top: 4px;
   background-color: transparent;
+  border: 1px solid #555;
   color: gold;
-  border: 1px solid #aaa;
+  padding: 4px 8px;
+  margin-top: 5px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  border-radius: 4px;
+  display: block;
 }
-
