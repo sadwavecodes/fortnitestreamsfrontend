@@ -14,20 +14,18 @@
   </header>
 
   <main>
-    <section id="multi-controls">
-      <label>
-        Select up to 16 streams:
-        <select id="stream-select" multiple size="8" style="width: 100%; max-width: 400px;"></select>
-      </label>
+    <section id="multi-controls" class="multi-controls">
+      <label for="stream-select">Select up to 16 streams:</label>
+      <select id="stream-select" multiple size="8" aria-label="Select streams" class="stream-select"></select>
 
-      <div id="firefox-mode-container" style="display:none; margin-top:10px;">
+      <div id="firefox-mode-container" style="display:none;" class="firefox-mode-container">
         <label>
           <input type="checkbox" id="firefox-mode-checkbox" />
           Enable Firefox autoplay fix
         </label>
       </div>
 
-      <button id="load-multi-btn" style="margin-top: 12px;">Load Streams</button>
+      <button id="load-multi-btn" class="btn">Load Streams</button>
     </section>
 
     <section id="multi-streams" class="multi-grid"></section>
