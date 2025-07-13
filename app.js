@@ -41,8 +41,24 @@ const filteredStreamsContainer = document.getElementById("filtered-streams");
 // Helpers
 function createStreamEmbed(url) {
   const iframe = document.createElement("iframe");
-  iframe.src = url;
+
+  // Dynamically add correct parent param to Twitch embeds
+  if (url.includes("player.twitch.tv")) {
+    const parent = window.location.hostname;
+    // Remove any existing parent param
+    let cleanUrl = url.replace(/([&?])parent=[^&]+/, "");
+    cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
+    iframe.src = cleanUrl;
+  } else {
+    iframe.src = url;
+  }
+
   iframe.allowFullscreen = true;
+  iframe.setAttribute("frameborder", "0");
+  iframe.setAttribute("scrolling", "no");
+  iframe.width = "640";
+  iframe.height = "360";
+
   return iframe;
 }
 
