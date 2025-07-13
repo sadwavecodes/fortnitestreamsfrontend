@@ -1,38 +1,36 @@
-<!-- multiviewer.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Multi-Viewer - Fortnite Stream Hub</title>
+  <title>Fortnite Multi-Viewer</title>
   <link rel="stylesheet" href="styles.css" />
   <script defer type="module" src="multiviewer.js"></script>
 </head>
 <body>
   <header>
     <h1>Fortnite Multi-Viewer</h1>
-    <a href="index.html" style="color:#00aaff; font-weight:bold; margin-bottom:10px; display:inline-block;">← Back to Main Page</a>
+    <a href="index.html" id="back-link">Back to Main</a>
   </header>
 
   <main>
-    <section id="controls" style="max-width: 1200px; margin: auto; margin-bottom: 24px;">
+    <section id="multi-controls">
       <label>
-        Select Streams to Watch (up to 16):
-        <select id="stream-select" multiple size="10" style="width: 100%; max-width: 600px;"></select>
+        Select up to 16 streams:
+        <select id="stream-select" multiple size="8" style="width: 100%; max-width: 400px;"></select>
       </label>
 
-      <br />
-      <label>
-        Firefox Mode (click-to-play instead of autoplay):
-        <input type="checkbox" id="firefox-mode" checked />
-      </label>
+      <div id="firefox-mode-container" style="display:none; margin-top:10px;">
+        <label>
+          <input type="checkbox" id="firefox-mode-checkbox" />
+          Enable Firefox autoplay fix
+        </label>
+      </div>
 
-      <br />
-      <button id="load-selected" style="margin-top:12px; padding: 10px 20px; background:#00aaff; color:#fff; border:none; border-radius: 20px; cursor:pointer;">Load Selected Streams</button>
-      <button id="clear-selected" style="margin-left: 12px; padding: 10px 20px; background:#ff4444; color:#fff; border:none; border-radius: 20px; cursor:pointer;">Clear</button>
+      <button id="load-multi-btn" style="margin-top: 12px;">Load Streams</button>
     </section>
 
-    <section id="multi-viewer-section" class="multi-viewer-grid" data-count="0" style="max-width: 1200px; margin: auto;"></section>
+    <section id="multi-streams" class="multi-grid"></section>
   </main>
 </body>
 </html>
