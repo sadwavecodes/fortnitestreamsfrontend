@@ -1,3 +1,4 @@
+// app.js (ES module)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {
   getAuth,
@@ -31,63 +32,52 @@ const loginBtn = document.getElementById("login-btn");
 const referralSection = document.getElementById("referral-section");
 const referralLinkInput = document.getElementById("referral-link");
 const minViewersInput = document.getElementById("min-viewers");
-const minViewersValue = document.getElementById("min-viewers-value");
 const creatorNameInput = document.getElementById("creator-name");
-const applyFiltersBtn = document.getElementById("apply-filters-btn");
 const streamsContainer = document.getElementById("streams");
-
-minViewersInput.addEventListener("input", () => {
-  minViewersValue.textContent = minViewersInput.value;
-});
-
-let allStreamsCache = [];
+const filteredStreamsContainer = document.getElementById("filtered-streams");
+const watchSelectedBtn = document.getElementById("watch-selected-btn");
 
 function createStreamPreview(stream) {
   const container = document.createElement("div");
   container.classList.add("stream-preview");
 
-  // Streamer name fallback
-  const streamerName = stream.user_name || stream.user_login || stream.channel || "Unknown Creator";
-
-  // Use thumbnail URL if provided, or Twitch fallback
-  let thumbnailUrl = stream.thumbnailUrl || "";
-  if (thumbnailUrl) {
-    thumbnailUrl = thumbnailUrl.replace("{width}", "320").replace("{height}", "180");
-  } else {
-    thumbnailUrl = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel || ""}-320x180.jpg`;
-  }
-
   const img = document.createElement("img");
-  img.src = thumbnailUrl;
-  img.alt = `Preview of ${streamerName}`;
-  img.loading = "lazy";
+  img.src = stream.thumbnailUrl ||
+    `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel}-320x180.jpg`;
+  img.alt = stream.title || "Stream preview";
+  img.className = "stream-thumbnail";
 
-  // Name overlay
-  const nameOverlay = document.createElement("div");
-  nameOverlay.className = "stream-name-overlay";
-  nameOverlay.textContent = streamerName;
+  const meta = document.createElement("div");
+  meta.className = "stream-meta";
+  meta.innerHTML = `
+    <strong>${stream.user_name || stream.channel || "Unnamed Creator"}</strong>
+    <span>${stream.viewer_count || 0} viewers</span>
+  `;
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "stream-select";
+  checkbox.dataset.embedUrl = stream.embedUrl;
 
   container.appendChild(img);
-  container.appendChild(nameOverlay);
+  container.appendChild(meta);
+  container.appendChild(checkbox);
 
   container.addEventListener("click", () => {
     const iframe = document.createElement("iframe");
-    // Twitch player URL fix for parent param
-    if (stream.embedUrl && stream.embedUrl.includes("player.twitch.tv")) {
+    let embed = stream.embedUrl;
+    if (embed.includes("player.twitch.tv")) {
       const parent = window.location.hostname;
-      let cleanUrl = stream.embedUrl.replace(/([&?])parent=[^&]+/, "");
-      cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
-      iframe.src = cleanUrl;
-    } else {
-      iframe.src = stream.embedUrl || "";
+      embed = embed.replace(/([&?])parent=[^&]+/, "");
+      embed += embed.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
     }
+    iframe.src = embed;
     iframe.allowFullscreen = true;
     iframe.setAttribute("frameborder", "0");
     iframe.setAttribute("scrolling", "no");
     iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
-    iframe.width = "320";
-    iframe.height = "180";
-
+    iframe.width = "640";
+    iframe.height = "360";
     container.innerHTML = "";
     container.appendChild(iframe);
   });
@@ -95,33 +85,81 @@ function createStreamPreview(stream) {
   return container;
 }
 
-function renderStreamsFiltered() {
-  const minViewers = parseInt(minViewersInput.value) || 0;
-  const creatorFilter = creatorNameInput.value.trim().toLowerCase();
-
-  const filtered = allStreamsCache.filter((stream) => {
-    const name = (stream.user_name || stream.user_login || "").toLowerCase();
-    const meetsViewers = (stream.viewer_count || 0) >= minViewers;
-    const matchesName = !creatorFilter || name.includes(creatorFilter);
-    return meetsViewers && matchesName;
-  });
-
-  streamsContainer.innerHTML = "";
-  filtered.forEach((stream) => {
-    streamsContainer.appendChild(createStreamPreview(stream));
+function renderStreams(container, streams) {
+  container.innerHTML = "";
+  streams.forEach((stream) => {
+    container.appendChild(createStreamPreview(stream));
   });
 }
 
 async function loadCachedStreams() {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/cache");
-    if (!res.ok) throw new Error("Failed to fetch streams");
     const streams = await res.json();
-    allStreamsCache = streams;
-    renderStreamsFiltered();
+    renderStreams(streamsContainer, streams);
   } catch (e) {
     console.error("Failed to load cached streams", e);
   }
+}
+
+async function loadFilteredStreams(minViewers, creator) {
+  try {
+    const res = await fetch(`https://fortnitestreams.onrender.com/filtered?minViewers=${minViewers}`);
+    let streams = await res.json();
+    if (creator) {
+      const nameLower = creator.toLowerCase();
+      streams = streams.filter((s) =>
+        (s.user_name || s.channel || "").toLowerCase().includes(nameLower)
+      );
+    }
+    renderStreams(filteredStreamsContainer, streams);
+  } catch (e) {
+    console.error("Failed to load filtered streams", e);
+  }
+}
+
+async function loadYouTubeStreams(idToken) {
+  try {
+    const res = await fetch("https://fortnitestreams.onrender.com/youtube", {
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+    if (res.ok) {
+      const ytStreams = await res.json();
+      ytStreams.forEach((stream) => {
+        filteredStreamsContainer.appendChild(createStreamPreview(stream));
+      });
+    } else {
+      console.log("YouTube streams unavailable:", await res.json());
+    }
+  } catch (e) {
+    console.error("Failed to load YouTube streams", e);
+  }
+}
+
+async function submitReferralCode(idToken, code) {
+  try {
+    const res = await fetch("https://fortnitestreams.onrender.com/register-referral", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ referralCode: code }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert("Referral registered! You unlocked premium.");
+    } else {
+      alert("Referral error: " + (data.error || "Unknown error"));
+    }
+  } catch (e) {
+    alert("Referral submission failed.");
+    console.error(e);
+  }
+}
+
+function generateReferralCode() {
+  return Math.random().toString(36).substring(2, 8);
 }
 
 loginBtn.addEventListener("click", async () => {
@@ -143,7 +181,7 @@ onAuthStateChanged(auth, async (user) => {
     const userDoc = await getDoc(userRef);
 
     if (!userDoc.exists()) {
-      const refCode = Math.random().toString(36).substring(2, 8);
+      const refCode = generateReferralCode();
       await setDoc(userRef, {
         displayName: user.displayName,
         email: user.email,
@@ -157,18 +195,46 @@ onAuthStateChanged(auth, async (user) => {
       referralLinkInput.value = `${window.location.origin}?ref=${userDoc.data().referralCode}`;
     }
 
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref && (!userDoc.exists() || !userDoc.data().referredBy)) {
+      await submitReferralCode(idToken, ref);
+    }
+
     await loadCachedStreams();
+    const minViewers = parseInt(minViewersInput.value) || 0;
+    const creator = creatorNameInput.value.trim();
+    await loadFilteredStreams(minViewers, creator);
+    await loadYouTubeStreams(idToken);
   } else {
     loginBtn.style.display = "block";
     referralSection.style.display = "none";
     streamsContainer.innerHTML = "";
-    allStreamsCache = [];
+    filteredStreamsContainer.innerHTML = "";
   }
 });
 
-applyFiltersBtn.addEventListener("click", () => {
-  renderStreamsFiltered();
+window.applyFilters = async () => {
+  const minViewers = parseInt(minViewersInput.value) || 0;
+  const creator = creatorNameInput.value.trim();
+  await loadFilteredStreams(minViewers, creator);
+
+  const user = auth.currentUser;
+  if (user) {
+    const idToken = await user.getIdToken();
+    await loadYouTubeStreams(idToken);
+  }
+};
+
+watchSelectedBtn.addEventListener("click", () => {
+  const selected = document.querySelectorAll(".stream-select:checked");
+  const urls = Array.from(selected).map((el) => el.dataset.embedUrl);
+  if (urls.length > 0) {
+    const query = urls.map((u) => `stream=${encodeURIComponent(u)}`).join("&");
+    window.location.href = `/multiviewer.html?${query}`;
+  } else {
+    alert("Please select at least one stream to watch.");
+  }
 });
 
-// Initial load
 loadCachedStreams();
