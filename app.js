@@ -1,4 +1,4 @@
-// app.js (ES module)
+// app.js (ES module) — Modern, Clean, Seamless Version
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {
@@ -15,7 +15,6 @@ import {
   setDoc,
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
-// Your Firebase config (safe to expose)
 const firebaseConfig = {
   apiKey: "AIzaSyC_cqrtbrgJFcZaOWB_HQOwUzh7RZ4XDj0",
   authDomain: "fortnitestreams-1b4c1.firebaseapp.com",
@@ -30,111 +29,74 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM Elements
 const loginBtn = document.getElementById("login-btn");
 const referralSection = document.getElementById("referral-section");
 const referralLinkInput = document.getElementById("referral-link");
 const minViewersInput = document.getElementById("min-viewers");
-const creatorSearchInput = document.getElementById("creator-name") || null;
+const creatorInput = document.getElementById("creator-name");
 const streamsContainer = document.getElementById("streams");
 const filteredStreamsContainer = document.getElementById("filtered-streams");
 
-// Helpers
 function createStreamPreview(stream) {
-  const container = document.createElement("div");
-  container.classList.add("stream-preview");
-  container.style.position = "relative";
-  container.style.width = "320px";
-  container.style.height = "180px";
-  container.style.margin = "8px";
+  const wrapper = document.createElement("div");
+  wrapper.className = "stream-preview";
 
-  const img = document.createElement("img");
-  img.src = stream.thumbnailUrl || `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel || ""}-320x180.jpg`;
-  img.alt = stream.title || "Stream preview";
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.objectFit = "cover";
-  img.style.cursor = "pointer";
-  img.style.borderRadius = "8px";
+  const thumbnail = document.createElement("img");
+  thumbnail.src = stream.thumbnailUrl || "https://placehold.co/320x180?text=Stream";
+  thumbnail.alt = stream.title || "Stream";
+  thumbnail.className = "stream-thumb";
 
-  const playButton = document.createElement("div");
-  playButton.textContent = "▶";
-  playButton.style.position = "absolute";
-  playButton.style.top = "50%";
-  playButton.style.left = "50%";
-  playButton.style.transform = "translate(-50%, -50%)";
-  playButton.style.fontSize = "48px";
-  playButton.style.color = "white";
-  playButton.style.textShadow = "0 0 5px black";
-  playButton.style.pointerEvents = "none";
+  const title = document.createElement("div");
+  title.className = "stream-title";
+  title.textContent = stream.displayName || stream.channel || "Unnamed Stream";
 
-  const label = document.createElement("div");
-  label.textContent = stream.channel || stream.user_login || stream.creator || "Unknown Creator";
-  label.style.position = "absolute";
-  label.style.bottom = "4px";
-  label.style.left = "8px";
-  label.style.color = "white";
-  label.style.background = "rgba(0, 0, 0, 0.6)";
-  label.style.padding = "2px 6px";
-  label.style.fontSize = "12px";
-  label.style.borderRadius = "4px";
+  const launch = document.createElement("button");
+  launch.className = "stream-launch";
+  launch.textContent = "▶ Watch";
 
-  container.appendChild(img);
-  container.appendChild(playButton);
-  container.appendChild(label);
-
-  container.addEventListener("click", () => {
+  launch.addEventListener("click", () => {
     const iframe = document.createElement("iframe");
-    if (stream.embedUrl.includes("player.twitch.tv")) {
-      const parent = window.location.hostname;
-      let cleanUrl = stream.embedUrl.replace(/([&?])parent=[^&]+/, "");
-      cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
-      iframe.src = cleanUrl;
-    } else {
-      iframe.src = stream.embedUrl;
+    const url = new URL(stream.embedUrl);
+    if (url.hostname.includes("twitch.tv")) {
+      url.searchParams.set("parent", location.hostname);
     }
-
+    iframe.src = url.toString();
     iframe.allowFullscreen = true;
-    iframe.setAttribute("frameborder", "0");
-    iframe.setAttribute("scrolling", "no");
-    iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
+    iframe.frameBorder = "0";
     iframe.width = "640";
     iframe.height = "360";
-
-    container.innerHTML = "";
-    container.appendChild(iframe);
+    wrapper.innerHTML = "";
+    wrapper.appendChild(iframe);
   });
 
-  return container;
+  wrapper.append(thumbnail, title, launch);
+  return wrapper;
 }
 
 function renderStreams(container, streams) {
   container.innerHTML = "";
-  streams.forEach((stream) => {
-    container.appendChild(createStreamPreview(stream));
-  });
+  streams.forEach((s) => container.appendChild(createStreamPreview(s)));
 }
 
 async function loadCachedStreams() {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/cache");
-    const streams = await res.json();
-    renderStreams(streamsContainer, streams);
-  } catch (e) {
-    console.error("Failed to load cached streams", e);
+    const data = await res.json();
+    renderStreams(streamsContainer, data);
+  } catch (err) {
+    console.error("Cache load fail", err);
   }
 }
 
-async function loadFilteredStreams(minViewers, creator = "") {
+async function loadFilteredStreams(minViewers, creatorName = "") {
   try {
-    const url = new URL("https://fortnitestreams.onrender.com/filtered");
-    url.searchParams.set("minViewers", minViewers);
-    if (creator) url.searchParams.set("creator", creator);
-    const res = await fetch(url);
-    const streams = await res.json();
-    renderStreams(filteredStreamsContainer, streams);
-  } catch (e) {
-    console.error("Failed to load filtered streams", e);
+    const res = await fetch(
+      `https://fortnitestreams.onrender.com/filtered?minViewers=${minViewers}&creator=${encodeURIComponent(creatorName)}`
+    );
+    const data = await res.json();
+    renderStreams(filteredStreamsContainer, data);
+  } catch (err) {
+    console.error("Filter load fail", err);
   }
 }
 
@@ -144,15 +106,13 @@ async function loadYouTubeStreams(idToken) {
       headers: { Authorization: `Bearer ${idToken}` },
     });
     if (res.ok) {
-      const ytStreams = await res.json();
-      ytStreams.forEach((stream) => {
-        filteredStreamsContainer.appendChild(createStreamPreview(stream));
-      });
+      const yt = await res.json();
+      renderStreams(filteredStreamsContainer, yt);
     } else {
-      console.log("YouTube streams unavailable:", await res.json());
+      console.warn("YT restricted", await res.json());
     }
-  } catch (e) {
-    console.error("Failed to load YouTube streams", e);
+  } catch (err) {
+    console.error("YT load fail", err);
   }
 }
 
@@ -166,84 +126,71 @@ async function submitReferralCode(idToken, code) {
       },
       body: JSON.stringify({ referralCode: code }),
     });
-    const data = await res.json();
-    if (data.success) {
-      alert("Referral registered! You unlocked premium.");
-    } else {
-      alert("Referral error: " + (data.error || "Unknown error"));
-    }
+    const json = await res.json();
+    alert(json.success ? "Referral success!" : `Error: ${json.error}`);
   } catch (e) {
-    alert("Referral submission failed.");
-    console.error(e);
+    alert("Referral failed");
   }
 }
 
 function generateReferralCode() {
-  return Math.random().toString(36).substring(2, 8);
+  return Math.random().toString(36).slice(2, 8);
 }
 
 loginBtn.addEventListener("click", async () => {
-  const provider = new GoogleAuthProvider();
   try {
-    await signInWithPopup(auth, provider);
+    await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (e) {
     alert("Login failed: " + e.message);
   }
 });
 
 onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    loginBtn.style.display = "none";
-    referralSection.style.display = "block";
-
-    const idToken = await user.getIdToken();
-    const userRef = doc(db, "users", user.uid);
-    const userDoc = await getDoc(userRef);
-
-    if (!userDoc.exists()) {
-      const refCode = generateReferralCode();
-      await setDoc(userRef, {
-        displayName: user.displayName,
-        email: user.email,
-        referralCode: refCode,
-        referredBy: "",
-        referredCount: 0,
-        isPremium: false,
-      });
-      referralLinkInput.value = `${window.location.origin}?ref=${refCode}`;
-    } else {
-      referralLinkInput.value = `${window.location.origin}?ref=${userDoc.data().referralCode}`;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
-    if (ref && (!userDoc.exists() || !userDoc.data().referredBy)) {
-      await submitReferralCode(idToken, ref);
-    }
-
-    await loadCachedStreams();
-    const minViewers = parseInt(minViewersInput.value) || 0;
-    const creator = creatorSearchInput?.value || "";
-    await loadFilteredStreams(minViewers, creator);
-    await loadYouTubeStreams(idToken);
-  } else {
+  if (!user) {
     loginBtn.style.display = "block";
     referralSection.style.display = "none";
-    streamsContainer.innerHTML = "";
-    filteredStreamsContainer.innerHTML = "";
+    return;
   }
+
+  loginBtn.style.display = "none";
+  referralSection.style.display = "block";
+
+  const idToken = await user.getIdToken();
+  const refDoc = doc(db, "users", user.uid);
+  const snap = await getDoc(refDoc);
+
+  if (!snap.exists()) {
+    const refCode = generateReferralCode();
+    await setDoc(refDoc, {
+      displayName: user.displayName,
+      email: user.email,
+      referralCode: refCode,
+      referredBy: "",
+      referredCount: 0,
+      isPremium: false,
+    });
+    referralLinkInput.value = `${location.origin}?ref=${refCode}`;
+  } else {
+    referralLinkInput.value = `${location.origin}?ref=${snap.data().referralCode}`;
+  }
+
+  const params = new URLSearchParams(location.search);
+  const ref = params.get("ref");
+  if (ref && (!snap.exists() || !snap.data().referredBy)) {
+    await submitReferralCode(idToken, ref);
+  }
+
+  await loadCachedStreams();
+  await loadFilteredStreams(parseInt(minViewersInput.value) || 0, creatorInput.value || "");
+  await loadYouTubeStreams(idToken);
 });
 
 window.applyFilters = async () => {
-  const minViewers = parseInt(minViewersInput.value) || 0;
-  const creator = creatorSearchInput?.value || "";
-  await loadFilteredStreams(minViewers, creator);
-
+  const min = parseInt(minViewersInput.value) || 0;
+  const name = creatorInput.value || "";
+  await loadFilteredStreams(min, name);
   const user = auth.currentUser;
-  if (user) {
-    const idToken = await user.getIdToken();
-    await loadYouTubeStreams(idToken);
-  }
+  if (user) await loadYouTubeStreams(await user.getIdToken());
 };
 
 loadCachedStreams();
