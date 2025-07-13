@@ -182,8 +182,11 @@ function createStreamPreview(stream) {
     iframe.setAttribute("frameborder", "0");
     iframe.setAttribute("scrolling", "no");
     iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
-    iframe.width = "320";
-    iframe.height = "180";
+    
+    iframe.style.width = "100%";
+iframe.style.height = "100%";
+iframe.style.border = "none";
+iframe.style.display = "block";
 
     container.innerHTML = "";
     container.appendChild(iframe);
