@@ -2,23 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fortnite Multi-Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fortnite Multiviewer</title>
   <link rel="stylesheet" href="styles.css" />
-  <script defer type="module" src="multiviewer.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      margin: 0;
+      padding: 1rem;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .multi-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    iframe {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border: none;
+      border-radius: 8px;
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>Fortnite Multi-Viewer</h1>
-    <a href="index.html" class="back-link">← Back to Main</a>
-  </header>
+  <h1>Multiviewer - Selected Fortnite Streams</h1>
+  <div class="multi-container" id="multi-container"></div>
 
-  <main>
-    <section id="multi-viewer-controls">
-      <label for="multi-viewer-select">Select Streams to Watch (Ctrl+Click or Shift+Click to select multiple):</label>
-      <select id="multi-viewer-select" multiple size="8" class="stream-select"></select>
-      <button id="watch-btn" class="watch-btn">Watch Selected Streams</button>
-    </section>
-  </main>
+  <script>
+    function getEmbedUrls() {
+      const params = new URLSearchParams(window.location.search);
+      const urls = [];
+      for (const [key, value] of params.entries()) {
+        if (key === "stream") {
+          urls.push(value);
+        }
+      }
+      return urls;
+    }
+
+    function addParentParam(url) {
+      const parent = window.location.hostname;
+      let cleanUrl = url.replace(/([&?])parent=[^&]+/, "");
+      return cleanUrl.includes("?")
+        ? `${cleanUrl}&parent=${parent}`
+        : `${cleanUrl}?parent=${parent}`;
+    }
+
+    function renderStreams() {
+      const container = document.getElementById("multi-container");
+      const embedUrls = getEmbedUrls();
+
+      if (embedUrls.length === 0) {
+        container.innerHTML = "<p>No streams selected.</p>";
+        return;
+      }
+
+      embedUrls.forEach((url) => {
+        const iframe = document.createElement("iframe");
+        iframe.src = addParentParam(decodeURIComponent(url));
+        iframe.allow =
+          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+        container.appendChild(iframe);
+      });
+    }
+
+    renderStreams();
+  </script>
 </body>
 </html>
