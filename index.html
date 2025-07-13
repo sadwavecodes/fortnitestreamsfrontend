@@ -1,18 +1,17 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fortnite Stream Hub</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css" />
   <script defer type="module" src="app.js"></script>
 </head>
 <body>
   <header>
     <h1>Fortnite Stream Hub</h1>
     <button id="login-btn">Sign in with Google</button>
-    <div id="referral-section" style="display: none">
+    <div id="referral-section" style="display: none;">
       <p>Invite friends using this link to unlock premium:</p>
       <input id="referral-link" readonly />
     </div>
@@ -20,23 +19,25 @@
 
   <main>
     <section id="filters">
-      <label>Min Viewers:
+      <div>
+        <label for="min-viewers">Min Viewers:</label>
         <input type="range" id="min-viewers" min="0" max="5000" value="0" step="10" />
         <span id="min-viewers-value">0</span>
-      </label>
-      <label>Creator Name:
+      </div>
+      <div>
+        <label for="creator-name">Creator Name:</label>
         <input type="text" id="creator-name" placeholder="e.g. Ninja" />
-      </label>
+      </div>
       <button onclick="applyFilters()">Apply Filters</button>
     </section>
 
     <section>
-      <h2>All Streams (Cached)</h2>
+      <h2>All Streams</h2>
       <div id="streams" class="stream-grid"></div>
     </section>
 
     <section>
-      <h2>Filtered Streams (Live)</h2>
+      <h2>Filtered Streams</h2>
       <div id="filtered-streams" class="stream-grid"></div>
     </section>
   </main>
