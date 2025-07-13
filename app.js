@@ -33,71 +33,53 @@ const referralLinkInput = document.getElementById("referral-link");
 const minViewersInput = document.getElementById("min-viewers");
 const minViewersValue = document.getElementById("min-viewers-value");
 const creatorNameInput = document.getElementById("creator-name");
+const applyFiltersBtn = document.getElementById("apply-filters-btn");
 const streamsContainer = document.getElementById("streams");
 
-// Update slider display
 minViewersInput.addEventListener("input", () => {
   minViewersValue.textContent = minViewersInput.value;
 });
 
-let allStreamsCache = []; // Keep all loaded streams for filtering
+let allStreamsCache = [];
 
-// Create clickable preview thumbnail that loads iframe on click
 function createStreamPreview(stream) {
   const container = document.createElement("div");
   container.classList.add("stream-preview");
-  container.style.position = "relative";
-  container.style.width = "320px"; // Thumbnail size
-  container.style.height = "180px"; // 16:9 ratio
-  container.style.margin = "8px";
-  container.style.borderRadius = "10px";
-  container.style.overflow = "hidden";
-  container.style.backgroundColor = "#000";
 
-  // Streamer display name or fallback to login name
+  // Streamer name fallback
   const streamerName = stream.user_name || stream.user_login || stream.channel || "Unknown Creator";
 
-  // Thumbnail image fallback to Twitch preview pattern
-  const thumbnailUrl =
-    stream.thumbnailUrl?.replace("{width}", "320").replace("{height}", "180") ||
-    `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel || ""}-320x180.jpg`;
+  // Use thumbnail URL if provided, or Twitch fallback
+  let thumbnailUrl = stream.thumbnailUrl || "";
+  if (thumbnailUrl) {
+    thumbnailUrl = thumbnailUrl.replace("{width}", "320").replace("{height}", "180");
+  } else {
+    thumbnailUrl = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel || ""}-320x180.jpg`;
+  }
 
   const img = document.createElement("img");
   img.src = thumbnailUrl;
   img.alt = `Preview of ${streamerName}`;
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.objectFit = "cover";
-  img.style.cursor = "pointer";
-  img.style.display = "block";
+  img.loading = "lazy";
 
-  // Streamer name overlay at bottom
+  // Name overlay
   const nameOverlay = document.createElement("div");
+  nameOverlay.className = "stream-name-overlay";
   nameOverlay.textContent = streamerName;
-  nameOverlay.style.position = "absolute";
-  nameOverlay.style.bottom = "0";
-  nameOverlay.style.left = "0";
-  nameOverlay.style.width = "100%";
-  nameOverlay.style.background = "rgba(0, 0, 0, 0.7)";
-  nameOverlay.style.color = "white";
-  nameOverlay.style.fontWeight = "bold";
-  nameOverlay.style.padding = "4px 8px";
-  nameOverlay.style.fontSize = "14px";
 
   container.appendChild(img);
   container.appendChild(nameOverlay);
 
-  // On click, replace thumbnail with embedded stream iframe
   container.addEventListener("click", () => {
     const iframe = document.createElement("iframe");
-    // Twitch embeds require parent param
-    if (stream.embedUrl.includes("player.twitch.tv")) {
+    // Twitch player URL fix for parent param
+    if (stream.embedUrl && stream.embedUrl.includes("player.twitch.tv")) {
       const parent = window.location.hostname;
       let cleanUrl = stream.embedUrl.replace(/([&?])parent=[^&]+/, "");
       cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
       iframe.src = cleanUrl;
     } else {
-      iframe.src = stream.embedUrl;
+      iframe.src = stream.embedUrl || "";
     }
     iframe.allowFullscreen = true;
     iframe.setAttribute("frameborder", "0");
@@ -105,6 +87,7 @@ function createStreamPreview(stream) {
     iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
     iframe.width = "320";
     iframe.height = "180";
+
     container.innerHTML = "";
     container.appendChild(iframe);
   });
@@ -112,7 +95,6 @@ function createStreamPreview(stream) {
   return container;
 }
 
-// Render streams filtered by name and min viewers
 function renderStreamsFiltered() {
   const minViewers = parseInt(minViewersInput.value) || 0;
   const creatorFilter = creatorNameInput.value.trim().toLowerCase();
@@ -133,6 +115,7 @@ function renderStreamsFiltered() {
 async function loadCachedStreams() {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/cache");
+    if (!res.ok) throw new Error("Failed to fetch streams");
     const streams = await res.json();
     allStreamsCache = streams;
     renderStreamsFiltered();
@@ -174,12 +157,6 @@ onAuthStateChanged(auth, async (user) => {
       referralLinkInput.value = `${window.location.origin}?ref=${userDoc.data().referralCode}`;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
-    if (ref && (!userDoc.exists() || !userDoc.data().referredBy)) {
-      // You can add submitReferralCode logic here if you want
-    }
-
     await loadCachedStreams();
   } else {
     loginBtn.style.display = "block";
@@ -189,9 +166,9 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-window.applyFilters = () => {
+applyFiltersBtn.addEventListener("click", () => {
   renderStreamsFiltered();
-};
+});
 
 // Initial load
 loadCachedStreams();
