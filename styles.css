@@ -1,3 +1,4 @@
+/* === Base === */
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: #121212;
@@ -6,11 +7,13 @@ body {
   padding: 0 16px 40px;
 }
 
+/* === Header === */
 header {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
   padding: 20px 0;
   border-bottom: 1px solid #222;
 }
@@ -21,9 +24,12 @@ h1 {
   font-size: 1.8rem;
   color: #00aaff;
   user-select: none;
+  text-align: center;
 }
 
-#login-btn, #logout-btn {
+/* === Auth Buttons === */
+#login-btn,
+#logout-btn {
   background-color: #00aaff;
   border: none;
   padding: 10px 20px;
@@ -34,7 +40,6 @@ h1 {
   cursor: pointer;
   user-select: none;
   transition: background-color 0.3s ease;
-  margin-right: 12px;
 }
 
 #login-btn:hover,
@@ -42,15 +47,21 @@ h1 {
   background-color: #0088cc;
 }
 
-#multi-viewer-link {
-  color: #00aaff;
-  font-weight: 600;
-  text-decoration: none;
-  font-size: 1rem;
-  margin-left: auto;
-  user-select: none;
+#user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
+#user-name {
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* === Filters === */
 main {
   max-width: 1200px;
   margin: 20px auto 60px;
@@ -62,6 +73,7 @@ main {
   gap: 12px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
 }
 
 #filters label {
@@ -106,6 +118,7 @@ main {
   background-color: #0088cc;
 }
 
+/* === Stream Grid === */
 .stream-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -113,31 +126,33 @@ main {
   user-select: none;
 }
 
+/* Each preview keeps 16:9 size and fits perfectly */
 .stream-preview {
   position: relative;
-  border-radius: 10px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   background: #000;
+  border-radius: 10px;
   box-shadow: 0 0 6px rgba(0, 170, 255, 0.3);
-  aspect-ratio: 16 / 9;
-  cursor: pointer;
   transition: transform 0.2s ease;
+  cursor: pointer;
 }
 
 .stream-preview:hover {
   transform: scale(1.02);
 }
 
-.stream-preview img,
-.stream-preview iframe {
+.stream-preview iframe,
+.stream-preview img {
   width: 100%;
   height: 100%;
-  display: block;
   object-fit: cover;
   border: none;
-  border-radius: 0;
+  display: block;
 }
 
+/* Streamer name overlay */
 .stream-name-overlay {
   position: absolute;
   bottom: 0;
@@ -150,48 +165,21 @@ main {
   font-size: 14px;
   user-select: none;
   pointer-events: none;
+  text-align: center;
 }
 
-.multi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 8px;
-  margin-top: 20px;
-  user-select: none;
-}
-
-.fav-btn {
-  background-color: transparent;
-  border: 1px solid #555;
-  color: gold;
-  padding: 4px 8px;
-  margin-top: 5px;
-  cursor: pointer;
-  font-size: 13px;
-  border-radius: 4px;
-  display: block;
-}
-
-/* Remove old referral input section if unused */
-#referral-section {
-  display: none;
-}
-
-#user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-#user-name {
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-/* Responsive fallback */
+/* === Responsive Tweaks === */
 @media (max-width: 480px) {
   .stream-grid {
     grid-template-columns: 1fr;
+  }
+
+  header {
+    padding: 16px;
+  }
+
+  #filters {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
