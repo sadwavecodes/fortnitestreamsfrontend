@@ -6,10 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fortnite Stream Hub</title>
   <link rel="stylesheet" href="style.css" />
-  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-  <script type="module" defer src="app.js"></script>
+  <script defer type="module" src="app.js"></script>
 </head>
 <body>
   <header>
@@ -23,34 +20,25 @@
 
   <main>
     <section id="filters">
-      <label>Min Viewers: <input type="range" id="min-viewers" min="0" max="10000" step="10" /></label>
-      <span id="viewer-count-label">0</span>
-      <label>Creator Name: <input type="text" id="creator-name" placeholder="e.g., Ninja" /></label>
+      <label>Min Viewers:
+        <input type="range" id="min-viewers" min="0" max="5000" value="0" step="10" />
+        <span id="min-viewers-value">0</span>
+      </label>
+      <label>Creator Name:
+        <input type="text" id="creator-name" placeholder="e.g. Ninja" />
+      </label>
       <button onclick="applyFilters()">Apply Filters</button>
     </section>
 
     <section>
-      <h2>All Streams (cached)</h2>
+      <h2>All Streams (Cached)</h2>
       <div id="streams" class="stream-grid"></div>
     </section>
 
     <section>
-      <h2>Filtered Streams</h2>
+      <h2>Filtered Streams (Live)</h2>
       <div id="filtered-streams" class="stream-grid"></div>
     </section>
-
-    <section>
-      <h2>Multi-Viewer</h2>
-      <div id="multi-grid" class="stream-grid"></div>
-    </section>
   </main>
-
-  <script>
-    const minViewersInput = document.getElementById('min-viewers');
-    const viewerCountLabel = document.getElementById('viewer-count-label');
-    minViewersInput.addEventListener('input', () => {
-      viewerCountLabel.textContent = minViewersInput.value;
-    });
-  </script>
 </body>
 </html>
