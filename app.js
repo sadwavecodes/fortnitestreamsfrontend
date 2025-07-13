@@ -35,21 +35,19 @@ const loginBtn = document.getElementById("login-btn");
 const referralSection = document.getElementById("referral-section");
 const referralLinkInput = document.getElementById("referral-link");
 const minViewersInput = document.getElementById("min-viewers");
+const creatorSearchInput = document.getElementById("creator-name") || null;
 const streamsContainer = document.getElementById("streams");
 const filteredStreamsContainer = document.getElementById("filtered-streams");
 
 // Helpers
-
-// Create clickable preview thumbnail, load iframe only on click
 function createStreamPreview(stream) {
   const container = document.createElement("div");
   container.classList.add("stream-preview");
   container.style.position = "relative";
-  container.style.width = "320px";  // thumbnail size for grid
-  container.style.height = "180px"; // 16:9 ratio
+  container.style.width = "320px";
+  container.style.height = "180px";
   container.style.margin = "8px";
 
-  // Thumbnail image (use backend thumbnailUrl or fallback Twitch preview)
   const img = document.createElement("img");
   img.src = stream.thumbnailUrl || `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel || ""}-320x180.jpg`;
   img.alt = stream.title || "Stream preview";
@@ -59,7 +57,6 @@ function createStreamPreview(stream) {
   img.style.cursor = "pointer";
   img.style.borderRadius = "8px";
 
-  // Play button overlay
   const playButton = document.createElement("div");
   playButton.textContent = "▶";
   playButton.style.position = "absolute";
@@ -71,19 +68,26 @@ function createStreamPreview(stream) {
   playButton.style.textShadow = "0 0 5px black";
   playButton.style.pointerEvents = "none";
 
+  const label = document.createElement("div");
+  label.textContent = stream.channel || stream.user_login || stream.creator || "Unknown Creator";
+  label.style.position = "absolute";
+  label.style.bottom = "4px";
+  label.style.left = "8px";
+  label.style.color = "white";
+  label.style.background = "rgba(0, 0, 0, 0.6)";
+  label.style.padding = "2px 6px";
+  label.style.fontSize = "12px";
+  label.style.borderRadius = "4px";
+
   container.appendChild(img);
   container.appendChild(playButton);
+  container.appendChild(label);
 
-  // On click, replace thumbnail with Twitch iframe
   container.addEventListener("click", () => {
     const iframe = document.createElement("iframe");
-
-    // If Twitch player URL, add correct 'parent' param dynamically
     if (stream.embedUrl.includes("player.twitch.tv")) {
       const parent = window.location.hostname;
-      // Remove any existing parent param first
       let cleanUrl = stream.embedUrl.replace(/([&?])parent=[^&]+/, "");
-      // Add parent param properly
       cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
       iframe.src = cleanUrl;
     } else {
@@ -97,7 +101,6 @@ function createStreamPreview(stream) {
     iframe.width = "640";
     iframe.height = "360";
 
-    // Replace preview with actual stream iframe
     container.innerHTML = "";
     container.appendChild(iframe);
   });
@@ -112,7 +115,6 @@ function renderStreams(container, streams) {
   });
 }
 
-// Fetch cached Twitch streams from backend
 async function loadCachedStreams() {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/cache");
@@ -123,10 +125,12 @@ async function loadCachedStreams() {
   }
 }
 
-// Fetch filtered Twitch streams (with minViewers)
-async function loadFilteredStreams(minViewers) {
+async function loadFilteredStreams(minViewers, creator = "") {
   try {
-    const res = await fetch(`https://fortnitestreams.onrender.com/filtered?minViewers=${minViewers}`);
+    const url = new URL("https://fortnitestreams.onrender.com/filtered");
+    url.searchParams.set("minViewers", minViewers);
+    if (creator) url.searchParams.set("creator", creator);
+    const res = await fetch(url);
     const streams = await res.json();
     renderStreams(filteredStreamsContainer, streams);
   } catch (e) {
@@ -134,7 +138,6 @@ async function loadFilteredStreams(minViewers) {
   }
 }
 
-// Fetch YouTube streams (premium only)
 async function loadYouTubeStreams(idToken) {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/youtube", {
@@ -153,7 +156,6 @@ async function loadYouTubeStreams(idToken) {
   }
 }
 
-// Referral code submission
 async function submitReferralCode(idToken, code) {
   try {
     const res = await fetch("https://fortnitestreams.onrender.com/register-referral", {
@@ -176,12 +178,10 @@ async function submitReferralCode(idToken, code) {
   }
 }
 
-// Generate random referral code
 function generateReferralCode() {
   return Math.random().toString(36).substring(2, 8);
 }
 
-// Sign in flow
 loginBtn.addEventListener("click", async () => {
   const provider = new GoogleAuthProvider();
   try {
@@ -191,7 +191,6 @@ loginBtn.addEventListener("click", async () => {
   }
 });
 
-// Handle user state
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     loginBtn.style.display = "none";
@@ -216,17 +215,16 @@ onAuthStateChanged(auth, async (user) => {
       referralLinkInput.value = `${window.location.origin}?ref=${userDoc.data().referralCode}`;
     }
 
-    // Check referral query param once
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (ref && (!userDoc.exists() || !userDoc.data().referredBy)) {
       await submitReferralCode(idToken, ref);
     }
 
-    // Load streams
     await loadCachedStreams();
     const minViewers = parseInt(minViewersInput.value) || 0;
-    await loadFilteredStreams(minViewers);
+    const creator = creatorSearchInput?.value || "";
+    await loadFilteredStreams(minViewers, creator);
     await loadYouTubeStreams(idToken);
   } else {
     loginBtn.style.display = "block";
@@ -236,10 +234,10 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Filter button handler
 window.applyFilters = async () => {
   const minViewers = parseInt(minViewersInput.value) || 0;
-  await loadFilteredStreams(minViewers);
+  const creator = creatorSearchInput?.value || "";
+  await loadFilteredStreams(minViewers, creator);
 
   const user = auth.currentUser;
   if (user) {
@@ -248,5 +246,4 @@ window.applyFilters = async () => {
   }
 };
 
-// Load cached streams on initial page load
 loadCachedStreams();
