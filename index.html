@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fortnite Stream Hub</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/x-icon" href="fortniteico.ico">
   <script defer type="module" src="app.js"></script>
 </head>
 <body>
   <header>
     <h1>Fortnite Stream Hub</h1>
     <button id="login-btn">Sign in with Google</button>
-    <a href="multiviewer" id="multi-viewer-link">Multi-Viewer</a>
     <div id="referral-section" style="display: none">
       <p>Invite friends using this link to unlock premium:</p>
       <input id="referral-link" readonly />
@@ -33,8 +33,14 @@
     </section>
 
     <section>
-      <h2>Streams</h2>
+      <h2>All Streams (Cached)</h2>
       <div id="streams" class="stream-grid"></div>
+    </section>
+
+    <section id="multi-viewer-section" style="display:none;">
+      <h2>Multi Viewer (Selected Streams)</h2>
+      <button id="clear-multi-viewer">Clear Selection</button>
+      <div id="multi-viewer" class="multi-viewer-grid"></div>
     </section>
   </main>
 </body>
