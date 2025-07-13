@@ -1,85 +1,251 @@
-body {
+/* General resets */
+* {
+  box-sizing: border-box;
   margin: 0;
-  font-family: 'Segoe UI', sans-serif;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #121212;
-  color: #fff;
-}
-
-header {
-  padding: 1rem;
-  background: #1e1e1e;
+  color: #eee;
+  min-height: 100vh;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
+  padding: 1rem;
+  overflow-x: hidden;
 }
 
-button {
-  padding: 8px 16px;
-  font-size: 14px;
-  cursor: pointer;
-  background-color: #007aff;
-  border: none;
-  border-radius: 6px;
-  color: white;
-  transition: background-color 0.2s ease;
+/* Header */
+h1 {
+  font-weight: 700;
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #4fc3f7;
+  text-align: center;
 }
 
-button:hover {
-  background-color: #0051b3;
-}
-
-.filters {
-  margin: 1rem;
+/* Controls Section */
+#controls {
+  width: 100%;
+  max-width: 960px;
+  margin-bottom: 1.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  align-items: center;
-}
-
-input[type="number"],
-input[type="text"] {
-  padding: 6px 10px;
-  border-radius: 4px;
-  border: none;
-  font-size: 14px;
-}
-
-.stream-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 1rem;
   justify-content: center;
 }
 
-.stream-preview {
-  position: relative;
-  width: 320px;
-  background-color: #222;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+#controls label {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #bbb;
+  user-select: none;
+}
+
+#controls input[type="checkbox"],
+#controls input[type="text"],
+#controls select {
   cursor: pointer;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  padding: 0.4rem 0.7rem;
+  background-color: #222;
+  color: #eee;
+  box-shadow: inset 0 0 6px #00000099;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.stream-thumbnail {
+#controls input[type="checkbox"]:hover,
+#controls input[type="text"]:hover,
+#controls select:hover {
+  background-color: #333;
+}
+
+#controls button {
+  background: #4fc3f7;
+  color: #121212;
+  border: none;
+  padding: 0.6rem 1.3rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 5px 15px #4fc3f7aa;
+  transition: background-color 0.3s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+#controls button:hover {
+  background: #2ea0e0;
+}
+
+/* Stream Grid Container */
+#streams-grid {
   width: 100%;
-  height: auto;
-  display: block;
+  max-width: 1280px;
+  display: grid;
+  gap: 1rem;
+  /* Responsive grid, max 4 columns for 16 streams */
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  justify-items: center;
 }
 
+/* Each Stream Item */
+.stream-item {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgb(0 0 0 / 0.7);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stream-item:hover {
+  transform: scale(1.03);
+  box-shadow: 0 12px 26px rgb(79 195 247 / 0.9);
+}
+
+/* Iframe inside stream */
+.stream-item iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+  background: #000;
+}
+
+/* Stream Meta Info (overlay) */
 .stream-meta {
-  padding: 0.5rem;
-  font-size: 14px;
-  background-color: #181818;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.8));
+  color: #fff;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  font-size: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  pointer-events: none; /* So clicks go to iframe */
 }
 
+/* Checkbox for selecting stream */
 .stream-select {
   position: absolute;
   top: 10px;
   right: 10px;
-  transform: scale(1.5);
+  z-index: 20;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: #4fc3f7;
+  background: #222;
+  border-radius: 4px;
+  box-shadow: 0 0 5px #000;
+  transition: background-color 0.2s ease;
+}
+
+.stream-select:hover {
+  background: #333;
+}
+
+/* Responsive typography */
+@media (max-width: 720px) {
+  #controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #controls button {
+    width: 100%;
+  }
+
+  #streams-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  #streams-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Scrollbar style */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #222;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4fc3f7;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2ea0e0;
+}
+
+/* Button disabled state */
+button:disabled,
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Loading spinner */
+#loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid #222;
+  border-top: 6px solid #4fc3f7;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 4rem auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Alerts */
+.alert {
+  max-width: 1280px;
+  margin: 1rem auto;
+  background: #d32f2f;
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 4px 8px #b71c1ccc;
+  user-select: none;
+}
+
+/* Footer */
+footer {
+  margin-top: auto;
+  padding: 1rem 0;
+  color: #666;
+  font-size: 0.9rem;
+  text-align: center;
+  user-select: none;
 }
