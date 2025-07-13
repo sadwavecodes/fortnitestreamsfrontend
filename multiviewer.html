@@ -10,25 +10,16 @@
 <body>
   <header>
     <h1>Fortnite Multi-Viewer</h1>
-    <a href="index.html" id="back-link">Back to Main</a>
+    <a href="index.html" class="back-link">← Back to Main</a>
   </header>
 
   <main>
-    <section id="multi-controls" class="multi-controls">
-      <label for="stream-select">Select up to 16 streams:</label>
-      <select id="stream-select" multiple size="8" aria-label="Select streams" class="stream-select"></select>
-
-      <div id="firefox-mode-container" style="display:none;" class="firefox-mode-container">
-        <label>
-          <input type="checkbox" id="firefox-mode-checkbox" />
-          Enable Firefox autoplay fix
-        </label>
-      </div>
-
-      <button id="load-multi-btn" class="btn">Load Streams</button>
+    <section id="multi-viewer-controls">
+      <label for="multi-viewer-select">Select Streams to Watch (Ctrl+Click or Shift+Click to select multiple):</label>
+      <select id="multi-viewer-select" multiple size="8" class="stream-select"></select>
     </section>
 
-    <section id="multi-streams" class="multi-grid"></section>
+    <section id="multi-viewer-container" class="multi-viewer-grid"></section>
   </main>
 </body>
 </html>
