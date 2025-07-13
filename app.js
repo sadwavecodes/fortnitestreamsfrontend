@@ -13,7 +13,6 @@ import {
   setDoc,
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC_cqrtbrgJFcZaOWB_HQOwUzh7RZ4XDj0",
   authDomain: "fortnitestreams-1b4c1.firebaseapp.com",
@@ -28,174 +27,120 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM Elements
 const loginBtn = document.getElementById("login-btn");
 const referralSection = document.getElementById("referral-section");
 const referralLinkInput = document.getElementById("referral-link");
 const minViewersInput = document.getElementById("min-viewers");
-const minViewersValueSpan = document.getElementById("min-viewers-value");
+const minViewersValue = document.getElementById("min-viewers-value");
 const creatorNameInput = document.getElementById("creator-name");
-const applyFiltersBtn = document.getElementById("apply-filters-btn");
-
 const streamsContainer = document.getElementById("streams");
-const multiViewerSection = document.getElementById("multi-viewer-section");
-const multiViewerContainer = document.getElementById("multi-viewer");
-const clearMultiViewerBtn = document.getElementById("clear-multi-viewer");
 
-let allStreams = []; // Full current streams after filtering
-let selectedStreams = new Map(); // key: stream embedUrl, value: stream object
-
-// Update min viewers label on input change
+// Update slider display
 minViewersInput.addEventListener("input", () => {
-  minViewersValueSpan.textContent = minViewersInput.value;
+  minViewersValue.textContent = minViewersInput.value;
 });
 
-// Create stream preview element with click to select/deselect
+let allStreamsCache = []; // Keep all loaded streams for filtering
+
+// Create clickable preview thumbnail that loads iframe on click
 function createStreamPreview(stream) {
   const container = document.createElement("div");
   container.classList.add("stream-preview");
-  container.title = `${stream.display_name}\n${stream.title}\nViewers: ${stream.viewer_count}`;
   container.style.position = "relative";
+  container.style.width = "320px"; // Thumbnail size
+  container.style.height = "180px"; // 16:9 ratio
+  container.style.margin = "8px";
+  container.style.borderRadius = "10px";
+  container.style.overflow = "hidden";
+  container.style.backgroundColor = "#000";
 
-  // Thumbnail image
+  // Streamer display name or fallback to login name
+  const streamerName = stream.user_name || stream.user_login || stream.channel || "Unknown Creator";
+
+  // Thumbnail image fallback to Twitch preview pattern
+  const thumbnailUrl =
+    stream.thumbnailUrl?.replace("{width}", "320").replace("{height}", "180") ||
+    `https://static-cdn.jtvnw.net/previews-ttv/live_user_${stream.user_login || stream.channel || ""}-320x180.jpg`;
+
   const img = document.createElement("img");
-  img.src = stream.thumbnailUrl || "";
-  img.alt = `${stream.display_name} thumbnail`;
+  img.src = thumbnailUrl;
+  img.alt = `Preview of ${streamerName}`;
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.objectFit = "cover";
+  img.style.cursor = "pointer";
+  img.style.display = "block";
+
+  // Streamer name overlay at bottom
+  const nameOverlay = document.createElement("div");
+  nameOverlay.textContent = streamerName;
+  nameOverlay.style.position = "absolute";
+  nameOverlay.style.bottom = "0";
+  nameOverlay.style.left = "0";
+  nameOverlay.style.width = "100%";
+  nameOverlay.style.background = "rgba(0, 0, 0, 0.7)";
+  nameOverlay.style.color = "white";
+  nameOverlay.style.fontWeight = "bold";
+  nameOverlay.style.padding = "4px 8px";
+  nameOverlay.style.fontSize = "14px";
+
   container.appendChild(img);
+  container.appendChild(nameOverlay);
 
-  // Info bar below thumbnail
-  const info = document.createElement("div");
-  info.classList.add("stream-info");
-  info.innerHTML = `
-    <span class="streamer-name">${stream.display_name}</span>
-    <span class="viewer-count">👁️ ${stream.viewer_count}</span>
-  `;
-  container.appendChild(info);
-
-  // Click toggles selection for multi-viewer
+  // On click, replace thumbnail with embedded stream iframe
   container.addEventListener("click", () => {
-    toggleStreamSelection(stream);
-  });
-
-  // Highlight if selected
-  if (selectedStreams.has(stream.embedUrl)) {
-    container.classList.add("selected");
-  }
-
-  return container;
-}
-
-// Render all streams grid
-function renderAllStreams() {
-  streamsContainer.innerHTML = "";
-  allStreams.forEach((stream) => {
-    streamsContainer.appendChild(createStreamPreview(stream));
-  });
-}
-
-// Render multi-viewer grid with up to 16 streams
-function renderMultiViewer() {
-  multiViewerContainer.innerHTML = "";
-
-  if (selectedStreams.size === 0) {
-    multiViewerSection.style.display = "none";
-    return;
-  }
-
-  multiViewerSection.style.display = "block";
-
-  // Adjust grid columns based on count
-  multiViewerContainer.setAttribute("data-count", selectedStreams.size);
-
-  for (const stream of selectedStreams.values()) {
     const iframe = document.createElement("iframe");
-    iframe.src = stream.embedUrl;
+    // Twitch embeds require parent param
+    if (stream.embedUrl.includes("player.twitch.tv")) {
+      const parent = window.location.hostname;
+      let cleanUrl = stream.embedUrl.replace(/([&?])parent=[^&]+/, "");
+      cleanUrl += cleanUrl.includes("?") ? `&parent=${parent}` : `?parent=${parent}`;
+      iframe.src = cleanUrl;
+    } else {
+      iframe.src = stream.embedUrl;
+    }
     iframe.allowFullscreen = true;
     iframe.setAttribute("frameborder", "0");
     iframe.setAttribute("scrolling", "no");
     iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
-    iframe.width = "640";
-    iframe.height = "360";
-    multiViewerContainer.appendChild(iframe);
-  }
+    iframe.width = "320";
+    iframe.height = "180";
+    container.innerHTML = "";
+    container.appendChild(iframe);
+  });
+
+  return container;
 }
 
-// Toggle stream selection in multi-viewer (max 16)
-function toggleStreamSelection(stream) {
-  if (selectedStreams.has(stream.embedUrl)) {
-    selectedStreams.delete(stream.embedUrl);
-  } else {
-    if (selectedStreams.size >= 16) {
-      alert("You can select up to 16 streams for multi-viewer.");
-      return;
-    }
-    selectedStreams.set(stream.embedUrl, stream);
-  }
-  renderAllStreams();
-  renderMultiViewer();
+// Render streams filtered by name and min viewers
+function renderStreamsFiltered() {
+  const minViewers = parseInt(minViewersInput.value) || 0;
+  const creatorFilter = creatorNameInput.value.trim().toLowerCase();
+
+  const filtered = allStreamsCache.filter((stream) => {
+    const name = (stream.user_name || stream.user_login || "").toLowerCase();
+    const meetsViewers = (stream.viewer_count || 0) >= minViewers;
+    const matchesName = !creatorFilter || name.includes(creatorFilter);
+    return meetsViewers && matchesName;
+  });
+
+  streamsContainer.innerHTML = "";
+  filtered.forEach((stream) => {
+    streamsContainer.appendChild(createStreamPreview(stream));
+  });
 }
 
-// Clear all selections
-clearMultiViewerBtn.addEventListener("click", () => {
-  selectedStreams.clear();
-  renderAllStreams();
-  renderMultiViewer();
-});
-
-// Fetch and filter streams
-async function loadStreams() {
+async function loadCachedStreams() {
   try {
-    // Fetch cached streams from backend with minViewers filter
-    const minViewers = parseInt(minViewersInput.value) || 0;
-    const creatorFilter = creatorNameInput.value.trim().toLowerCase();
-
-    const res = await fetch(`https://fortnitestreams.onrender.com/cache`);
-    let streams = await res.json();
-
-    // Filter streams by minViewers and creator name (case insensitive)
-    streams = streams.filter((s) => {
-      const viewerOk = s.viewer_count >= minViewers;
-      const creatorOk = creatorFilter === "" || (s.display_name && s.display_name.toLowerCase().includes(creatorFilter));
-      return viewerOk && creatorOk;
-    });
-
-    allStreams = streams;
-    renderAllStreams();
-
+    const res = await fetch("https://fortnitestreams.onrender.com/cache");
+    const streams = await res.json();
+    allStreamsCache = streams;
+    renderStreamsFiltered();
   } catch (e) {
-    console.error("Failed to load streams", e);
+    console.error("Failed to load cached streams", e);
   }
 }
 
-// Referral code submission (kept unchanged)
-async function submitReferralCode(idToken, code) {
-  try {
-    const res = await fetch("https://fortnitestreams.onrender.com/register-referral", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ referralCode: code }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      alert("Referral registered! You unlocked premium.");
-    } else {
-      alert("Referral error: " + (data.error || "Unknown error"));
-    }
-  } catch (e) {
-    alert("Referral submission failed.");
-    console.error(e);
-  }
-}
-
-// Generate random referral code (kept unchanged)
-function generateReferralCode() {
-  return Math.random().toString(36).substring(2, 8);
-}
-
-// Sign in flow (kept unchanged)
 loginBtn.addEventListener("click", async () => {
   const provider = new GoogleAuthProvider();
   try {
@@ -205,7 +150,6 @@ loginBtn.addEventListener("click", async () => {
   }
 });
 
-// Handle user auth state
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     loginBtn.style.display = "none";
@@ -216,7 +160,7 @@ onAuthStateChanged(auth, async (user) => {
     const userDoc = await getDoc(userRef);
 
     if (!userDoc.exists()) {
-      const refCode = generateReferralCode();
+      const refCode = Math.random().toString(36).substring(2, 8);
       await setDoc(userRef, {
         displayName: user.displayName,
         email: user.email,
@@ -230,30 +174,24 @@ onAuthStateChanged(auth, async (user) => {
       referralLinkInput.value = `${window.location.origin}?ref=${userDoc.data().referralCode}`;
     }
 
-    // Check referral query param once
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (ref && (!userDoc.exists() || !userDoc.data().referredBy)) {
-      await submitReferralCode(idToken, ref);
+      // You can add submitReferralCode logic here if you want
     }
 
-    await loadStreams();
-
+    await loadCachedStreams();
   } else {
     loginBtn.style.display = "block";
     referralSection.style.display = "none";
     streamsContainer.innerHTML = "";
-    multiViewerContainer.innerHTML = "";
-    multiViewerSection.style.display = "none";
-    allStreams = [];
-    selectedStreams.clear();
+    allStreamsCache = [];
   }
 });
 
-// Apply filters button
-applyFiltersBtn.addEventListener("click", () => {
-  loadStreams();
-});
+window.applyFilters = () => {
+  renderStreamsFiltered();
+};
 
-// Initial load of streams (without auth, shows cached)
-loadStreams();
+// Initial load
+loadCachedStreams();
